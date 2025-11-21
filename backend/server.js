@@ -50,7 +50,7 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// ===== Auth Routes =====
+// ===== Authentication Routes =====
 // Register
 app.post('/api/register', async (req, res) => {
   try {
