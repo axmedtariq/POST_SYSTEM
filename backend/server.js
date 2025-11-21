@@ -50,7 +50,7 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// ===== Auth Routes =====
+// ===== Authentication Routes =====
 // Register
 app.post('/api/register', async (req, res) => {
   try {
@@ -143,7 +143,7 @@ app.delete('/api/products/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ===== Checkout =====
+// ===== CHECKOUT PAGE =====
 app.post('/api/checkout', authMiddleware, async (req, res) => {
   const { items, customer } = req.body;
   if (!items || !items.length) return res.status(400).json({ error: 'Cart empty' });
