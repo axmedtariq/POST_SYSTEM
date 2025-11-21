@@ -1,0 +1,119 @@
+name: Full-Stack CI Pipeline (Node.js & Frontend)
+
+# Triggers the workflow on push or pull request events, specifically targeting the 'main' branch.
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allows you to manually run the workflow from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # ----------------------------------------------
+  # Job 1: Build and Test Backend (Node.js/Express)
+  # ----------------------------------------------
+  build_and_test_backend:
+    runs-on: ubuntu-latest
+    
+    # Define environment variables for the database connection (security best practice is to use GitHub Secrets)
+    env:
+      NODE_ENV: test
+      # Replace these with actual GitHub Secrets for production, or hardcode mock values for CI testing
+      # DB_HOST: ${{ secrets.DB_HOST }}
+      # DB_USER: ${{ secrets.DB_USER }}
+      # DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Specify your Node.js version
+
+    - name: Install Backend Dependencies (in the root or specific backend dir)
+      # Assuming package.json is in the root directory. If it's in a subdirectory (e.g., 'backend/'),
+      # change the run command to: run: npm install, working-directory: backend
+      run: npm install
+
+    - name: Run Backend Tests
+      # This step assumes you have a test script defined in your package.json (e.g., "test": "jest")
+      # Note: For testing a database connection, you might need a service container or use a database mocking library.
+      run: npm test
+
+    - name: Build and Lint (Optional but recommended)
+      # Add linting or build scripts here if you have them
+      run: npm run build || true # Use || true to prevent job failure if build script isn't defined yet
+      
+    # ----------------------------------------------
+    # Artifact for Deployment
+    # ----------------------------------------------
+    - name: Archive Backend for Deployment
+      # This saves the necessary files (like package.json, dist folder) as an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: node-backend-dist
+        path: |
+          ./package.json
+          ./server.js
+          ./src/
+          # Add any other necessary files/folders like the build/dist folder
+
+  # ----------------------------------------------
+  # Job 2: Prepare Frontend (HTML/CSS/JS)
+  # ----------------------------------------------
+  build_frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Archive Frontend Static Files
+      # Since your frontend is static (HTML/CSS/JS), we just package the necessary files.
+      uses: actions/upload-artifact@v4
+      with:
+        name: static-frontend
+        path: |
+          ./index.html
+          ./css/
+          ./js/
+          # Add any other static assets/folders
+
+  # ----------------------------------------------
+  # Job 3: Conceptual Deployment (Runs only after CI is successful)
+  # ----------------------------------------------
+  deploy:
+    runs-on: ubuntu-latest
+    # This job only runs if the 'build_and_test_backend' and 'build_frontend' jobs successfully completed
+    needs: [build_and_test_backend, build_frontend]
+    environment: Production # Optional: Use this for environment-specific secrets
+
+    steps:
+    - name: Download Backend Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: node-backend-dist
+        path: ./backend-app
+
+    - name: Download Frontend Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: static-frontend
+        path: ./frontend-app
+        
+    - name: Placeholder for Deployment Script (Replace this with your actual deployment logic)
+      run: |
+        echo "--- Deployment Started ---"
+        echo "Backend files ready in backend-app/"
+        echo "Frontend files ready in frontend-app/"
+        echo "Use a deployment action here for services like Azure Web Apps, AWS Elastic Beanstalk, or Heroku."
+        # Example for a specific platform:
+        # uses: azure/webapps-deploy@v2
+        # with:
+        #   app-name: 'my-post-system'
+        #   publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+        #   package: ./backend-app
+        echo "--- Deployment Finished ---"
